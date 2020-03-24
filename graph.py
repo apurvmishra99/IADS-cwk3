@@ -1,5 +1,5 @@
 import math
-
+import pprint
 
 def euclid(p, q):
     x = p[0]-q[0]
@@ -40,7 +40,8 @@ class Graph:
                 all_points = f.readlines()
                 for point in all_points:
                     x, y, dist = list(map(int, point.split()))
-                    self.dists[x][y] = dist
+                    self.dists[x][y], self.dists[y][x] = dist, dist
+
     # Complete as described in the spec, to calculate the cost of the
     # current tour (as represented by self.perm).
 
@@ -102,9 +103,27 @@ class Graph:
                 for i in range(j):
                     if self.tryReverse(i, j):
                         better = True
-
+    def nearest_node(self, not_visited, last):
+        min_dist = float('inf')
+        next_node = last
+        for node in not_visited:
+            if self.dists[last][node] < min_dist:
+                min_dist = self.dists[last][node]
+                next_node = node
+        return next_node
+    
     # Implement the Greedy heuristic which builds a tour starting
     # from node 0, taking the closest (unused) node as 'next'
     # each time.
     def Greedy(self):
-        pass
+        visited = [0]
+        not_visited = set( i for i in range(1, self.n) )
+        
+        for i in range(self.n - 1):
+            last = visited[-1]
+            next_node = self.nearest_node(not_visited, last)
+            visited.append(next_node)
+            not_visited.remove(next_node)
+        
+        self.perm = visited
+        
