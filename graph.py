@@ -1,11 +1,16 @@
 import math
-import pprint
+import sys
+import itertools
+
 
 def euclid(p, q):
     x = p[0]-q[0]
     y = p[1]-q[1]
     return math.sqrt(x*x+y*y)
 
+def route_generator(length):
+    for route in itertools.permutations(range(1, length)):
+        yield (0, ) + route
 
 class Graph:
 
@@ -15,14 +20,17 @@ class Graph:
     # self.perm, self.dists, self.n are the key variables to be set up.
     def __init__(self, n, filename):
         if n == -1:
-            self.n = int("".join(filter(str.isdigit, filename)))
+            try:
+                self.n = int("".join(filter(str.isdigit, filename)))
+            except Exception as e:
+                self.n = len(open(filename).readlines(  ))
             self.dists = [[0 for i in range(self.n)] for j in range(self.n)]
             self.perm = [i for i in range(self.n)]
             points = []
             with open(filename) as f:
                 all_points = f.readlines()
                 for point in all_points:
-                    point = list(map(int, point.split()))
+                    point = list(map(float, point.split()))
                     points.append(point)
 
             for i in range(self.n):
@@ -50,7 +58,6 @@ class Graph:
         journey_order = zip(self.perm, self.perm[1:]+[self.perm[0]])
         for leg in journey_order:
             i, j = leg
-            # print(self.dists)
             total_value += self.dists[i][j]
         return total_value
 
@@ -103,6 +110,7 @@ class Graph:
                 for i in range(j):
                     if self.tryReverse(i, j):
                         better = True
+
     def nearest_node(self, not_visited, last):
         min_dist = float('inf')
         next_node = last
@@ -111,19 +119,74 @@ class Graph:
                 min_dist = self.dists[last][node]
                 next_node = node
         return next_node
-    
+
     # Implement the Greedy heuristic which builds a tour starting
     # from node 0, taking the closest (unused) node as 'next'
     # each time.
     def Greedy(self):
         visited = [0]
-        not_visited = set( i for i in range(1, self.n) )
-        
+        not_visited = set(i for i in range(1, self.n))
+
         for i in range(self.n - 1):
             last = visited[-1]
             next_node = self.nearest_node(not_visited, last)
             visited.append(next_node)
             not_visited.remove(next_node)
-        
+
         self.perm = visited
-        
+
+    def MST(self):
+        mst = [0] * self.n
+        mst[0] = 0
+
+        a = [float('inf')] * self.n
+        visited = [0] * self.n
+
+        while not all(visited):
+            if sum(visited) == 0:
+                u = 0
+            else:
+                u = a.index(min(a))
+            visited[u] = 1
+            a[u] = float('inf')
+
+            for v in range(self.n):
+                if not visited[v] and self.dists[u][v] < a[v]:
+                    a[v] = self.dists[u][v]
+                    mst[v] = u
+
+        return mst
+
+    def DFS(self, mst):
+        tsp = []
+        stack = [0]
+        visited = [0] * self.n
+        visited[0] = 1
+
+        while len(stack):
+
+            cur = stack.pop()
+            tsp.append(cur)
+
+            for i in range(self.n):
+                if not visited[i] and mst[i] == cur:
+                    stack.append(i)
+                    visited[i] = 1
+
+        tsp.append(0)
+        return tsp
+
+    # Implementing the 2-Approximation Algorithm
+    def myPartC(self):
+        mst = self.MST()
+        tsp = self.DFS(mst)
+        self.perm = tsp
+
+    def brute_force(self):
+        values = []
+        for route in route_generator(self.n):
+            r = list(route)
+            self.perm = r 
+            tour_val = self.tourValue()
+            values.append(tour_val)
+        return min(values)
